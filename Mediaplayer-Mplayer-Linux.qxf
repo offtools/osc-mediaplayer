@@ -9,90 +9,90 @@
  <Manufacturer>Mediaplayer</Manufacturer>
  <Model>Mplayer (Linux)</Model>
  <Type>Other</Type>
- <Channel Name="Play">
+ <Channel Name="Stop">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="0" Min="0"></Capability>
-  <Capability Max="255" Min="255">play</Capability>
+  <Capability Min="0" Max="0"></Capability>
+  <Capability Min="255" Max="255">stop</Capability>
  </Channel>
  <Channel Name="Pause">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="0" Min="0"></Capability>
-  <Capability Max="255" Min="255">pause</Capability>
+  <Capability Min="0" Max="0"></Capability>
+  <Capability Min="255" Max="255">pause</Capability>
  </Channel>
  <Channel Name="Index">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="255" Min="0">Number of the file in the playback folder</Capability>
+  <Capability Min="0" Max="255">Number of the file in the playback folder</Capability>
  </Channel>
  <Channel Name="Next">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="0" Min="0"></Capability>
-  <Capability Max="255" Min="255">next</Capability>
+  <Capability Min="0" Max="0"></Capability>
+  <Capability Min="255" Max="255">next</Capability>
  </Channel>
  <Channel Name="Prev">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="0" Min="0"></Capability>
-  <Capability Max="255" Min="255">prev</Capability>
+  <Capability Min="0" Max="0"></Capability>
+  <Capability Min="255" Max="255">prev</Capability>
  </Channel>
  <Channel Name="Brightness">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="126" Min="0">minus</Capability>
-  <Capability Max="127" Min="127">default</Capability>
-  <Capability Max="255" Min="128">plus</Capability>
+  <Capability Min="0" Max="126">minus</Capability>
+  <Capability Min="127" Max="127">default</Capability>
+  <Capability Min="128" Max="255">plus</Capability>
  </Channel>
  <Channel Name="Contrast">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="126" Min="0">minus</Capability>
-  <Capability Max="127" Min="127">default</Capability>
-  <Capability Max="255" Min="128">plus</Capability>
+  <Capability Min="0" Max="126">minus</Capability>
+  <Capability Min="127" Max="127">default</Capability>
+  <Capability Min="128" Max="255">plus</Capability>
  </Channel>
  <Channel Name="Gamma">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="126" Min="0">minus</Capability>
-  <Capability Max="127" Min="127">default</Capability>
-  <Capability Max="255" Min="128">plus</Capability>
+  <Capability Min="0" Max="126">minus</Capability>
+  <Capability Min="127" Max="127">default</Capability>
+  <Capability Min="128" Max="255">plus</Capability>
  </Channel>
  <Channel Name="Hue">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="126" Min="0">minus</Capability>
-  <Capability Max="127" Min="127">default</Capability>
-  <Capability Max="255" Min="128">plus</Capability>
+  <Capability Min="0" Max="126">minus</Capability>
+  <Capability Min="127" Max="127">default</Capability>
+  <Capability Min="128" Max="255">plus</Capability>
  </Channel>
  <Channel Name="Saturation">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="126" Min="0">minus</Capability>
-  <Capability Max="127" Min="127">default</Capability>
-  <Capability Max="255" Min="128">plus</Capability>
+  <Capability Min="0" Max="126">minus</Capability>
+  <Capability Min="127" Max="127">default</Capability>
+  <Capability Min="128" Max="255">plus</Capability>
  </Channel>
  <Channel Name="Volume">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="255" Min="0">Volume</Capability>
+  <Capability Min="0" Max="255">Volume</Capability>
  </Channel>
  <Channel Name="Load">
   <Group Byte="0">Intensity</Group>
-  <Capability Max="0" Min="0"></Capability>
-  <Capability Max="255" Min="255">loadfile</Capability>
+  <Capability Min="0" Max="0"></Capability>
+  <Capability Min="255" Max="255">loadfile</Capability>
  </Channel>
  <Channel Name="osd">
-  <Group Byte="0">Intensity</Group>
-  <Capability Max="62" Min="0">Capability 1</Capability>
-  <Capability Max="125" Min="63">Capability 2</Capability>
-  <Capability Max="188" Min="126">Capability 3</Capability>
-  <Capability Max="251" Min="189">Capability 4</Capability>
+  <Group Byte="0">Maintenance</Group>
+  <Capability Min="0" Max="62">Capability 1</Capability>
+  <Capability Min="63" Max="125">Capability 2</Capability>
+  <Capability Min="126" Max="188">Capability 3</Capability>
+  <Capability Min="189" Max="251">Capability 4</Capability>
  </Channel>
  <Channel Name="fullscreen">
   <Group Byte="0">Maintenance</Group>
-  <Capability Max="127" Min="0">window</Capability>
-  <Capability Max="255" Min="128">fullscreen</Capability>
+  <Capability Min="0" Max="127">window</Capability>
+  <Capability Min="128" Max="255">fullscreen</Capability>
  </Channel>
  <Mode Name="Mode 1">
   <Physical>
-   <Bulb ColourTemperature="0" Lumens="0" Type=""/>
-   <Dimensions Height="0" Weight="0" Width="0" Depth="0"/>
-   <Lens DegreesMin="0" DegreesMax="0" Name="Other"/>
-   <Focus PanMax="0" Type="Fixed" TiltMax="0"/>
-   <Technical DmxConnector="5-pin" PowerConsumption="0"/>
+   <Bulb Type="" ColourTemperature="0" Lumens="0"/>
+   <Dimensions Height="0" Width="0" Depth="0" Weight="0"/>
+   <Lens Name="Other" DegreesMax="0" DegreesMin="0"/>
+   <Focus Type="Fixed" TiltMax="0" PanMax="0"/>
+   <Technical PowerConsumption="0" DmxConnector="5-pin"/>
   </Physical>
-  <Channel Number="0">Play</Channel>
+  <Channel Number="0">Stop</Channel>
   <Channel Number="1">Pause</Channel>
   <Channel Number="2">Index</Channel>
   <Channel Number="3">Load</Channel>

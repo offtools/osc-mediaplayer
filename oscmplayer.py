@@ -21,7 +21,6 @@ class oscbridge(liblo.ServerThread):
         self.__fifo.flush()
 
 
-
     def __del__(self):
         os.remove(self.__fifoname)
 
@@ -47,8 +46,8 @@ class oscbridge(liblo.ServerThread):
         print ("oscbridge: received unknown message", path, args)
 
 class Application():
-    NUMBER = 0
-    FILEPATH = 1
+    COL_NUMBER = 0
+    COL_FILEPATH = 1
 
     def __init__(self):
         handlers = {
@@ -76,18 +75,12 @@ class Application():
         self.scrollwin = builder.get_object("scrolledwindow1")
         self.context = self.statusbar.get_context_id("mplayer osc bridge")
         self.button =  builder.get_object("start")
+        
+        menuitem = builder.get_object("menuitem_file_quit")
+        menuitem.set_sensitive(True)
 
         self.started = False
         self.oscbridge = None
-        self.folder = None
-        self.playing = False
-        self.brightness = 0
-        self.contrast = 0
-        self.gamma = 0
-        self.volume = 0
-        self.hue = 0
-        self.saturation = 0
-        self.osd = 0
 
 #####################################################################
 #       GTK
@@ -107,7 +100,7 @@ class Application():
                 extargs = self.extargs.get_text().split()
 
                 self.oscbridge = oscbridge(universe, channel, port, mplfifo, extargs)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel), 'f', self.cb_play)
+                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel), 'f', self.cb_stop)
                 self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+1), 'f', self.cb_pause)
                 self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+2), 'f', self.cb_index)
                 self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+3), 'f', self.cb_loadfile)
@@ -142,10 +135,10 @@ class Application():
 
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            self.folder = dialog.get_current_folder()
+            folder = dialog.get_current_folder()
             filelist = list()
-            for i in os.listdir(self.folder):
-                fpath = os.path.join(self.folder, i)
+            for i in os.listdir(folder):
+                fpath = os.path.join(folder, i)
                 content_type, val = Gio.content_type_guess(filename=fpath, data=None)
                 print(fpath, content_type, Gio.content_type_is_a(content_type, 'audio/*') or Gio.content_type_is_a(content_type, 'image/*') or Gio.content_type_is_a(content_type, 'video/*'))
                 if Gio.content_type_is_a(content_type, 'audio/*') or Gio.content_type_is_a(content_type, 'image/*') or Gio.content_type_is_a(content_type, 'video/*'):
@@ -174,38 +167,33 @@ class Application():
 #       OSC
 #####################################################################
 
-    def cb_play(self, path, args):
-        if args[0] == 1.0 and self.playing == False:
-            self.oscbridge.send_command("pause")
-            self.playing == True
+    def cb_stop(self, path, args):
+        if args[0] == 1.0:
+            self.oscbridge.send_command("stop")
 
     def cb_pause(self, path, args):
-        if args[0] == 1.0 and self.playing == True:
+        if args[0] == 1.0: 
             self.oscbridge.send_command('pause')
-            self.playing == False
+                
 
     def cb_next(self, path, args):
-        if self.playing == True:
-            model, iter = self.selection.get_selected()
-            iter = model.iter_next(iter)
-            if (iter):
-                self.selection.select_iter(iter)
-                file = model[iter][Application.FILEPATH]
-                self.oscbridge.send_command('loadfile "%s"'%(file))
-                self.playing == True
-                p = self.model.get_path(iter)
-                self.tree.scroll_to_cell(p)
+        model, iter = self.selection.get_selected()
+        iter = model.iter_next(iter)
+        if (iter):
+            self.selection.select_iter(iter)
+            file = model[iter][Application.COL_FILEPATH]
+            self.oscbridge.send_command('loadfile "%s"'%(file))
+            p = self.model.get_path(iter)
+            self.tree.scroll_to_cell(p)
 
     def cb_prev(self, path, args):
-        if self.playing == True:
-            model, iter = self.selection.get_selected()
-            iter = model.iter_previous(iter)
-            if (iter):
-                self.selection.select_iter(iter)
-                self.oscbridge.send_command('loadfile "%s"'%(model[iter][Application.FILEPATH]))
-                self.playing == True
-                p = self.model.get_path(iter)
-                self.tree.scroll_to_cell(p)
+        model, iter = self.selection.get_selected()
+        iter = model.iter_previous(iter)
+        if (iter):
+            self.selection.select_iter(iter)
+            self.oscbridge.send_command('loadfile "%s"'%(model[iter][Application.COL_FILEPATH]))
+            p = self.model.get_path(iter)
+            self.tree.scroll_to_cell(p)
 
     def cb_index(self, path, args):
         index = int(round(args[0]*255))
@@ -223,40 +211,39 @@ class Application():
     def cb_loadfile(self, path, args):
         if args[0] == 1.0 and args[0] < len(self.model):
             model, iter = self.selection.get_selected()
-            filename = model[iter][Application.FILEPATH]
+            filename = model[iter][Application.COL_FILEPATH]
             content_type, val = Gio.content_type_guess(filename=filename, data=None)
             if (Gio.content_type_is_a(content_type, 'image/*')):
                 self.oscbridge.send_command('loadfile "mf://%s"'%(filename))
             self.oscbridge.send_command('loadfile "%s"'%(filename))
-            self.playing = True
 
     def cb_brightness(self, path, args):
-        self.brightness = int(round(args[0]*200)-100)
-        self.oscbridge.set_property("brightness", self.brightness)
+        brightness = int(round(args[0]*200)-100)
+        self.oscbridge.set_property("brightness", brightness)
 
     def cb_contrast(self, path, args):
-        self.contrast = int(round(args[0]*200)-100)
-        self.oscbridge.set_property('contrast', self.contrast)
+        contrast = int(round(args[0]*200)-100)
+        self.oscbridge.set_property('contrast', contrast)
 
     def cb_gamma(self, path, args):
-        self.gamma = int(round(args[0]*200)-100)
-        self.oscbridge.send_command('gamma', self.gamma)
+        gamma = int(round(args[0]*200)-100)
+        self.oscbridge.send_command('gamma', gamma)
 
     def cb_hue(self, path, args):
-        self.hue = int(round(args[0]*200)-100)
-        self.oscbridge.set_property('hue',self.hue)
+        hue = int(round(args[0]*200)-100)
+        self.oscbridge.set_property('hue',hue)
 
     def cb_saturation(self, path, args):
-        self.saturation = int(round(args[0]*200)-100)
-        self.oscbridge.set_property('saturation', self.saturation)
+        saturation = int(round(args[0]*200)-100)
+        self.oscbridge.set_property('saturation', saturation)
 
     def cb_volume(self, path, args):
-        self.volume = int(round(args[0]*100))
-        self.oscbridge.set_property('volume', self.volume)
+        volume = int(round(args[0]*100))
+        self.oscbridge.set_property('volume', volume)
 
     def cb_osd(self, path, args):
-        self.osd = int(int(round(args[0]*255))/63)
-        self.oscbridge.send_command('osd %d'%(self.osd))
+        osd = int(int(round(args[0]*255))/63)
+        self.oscbridge.send_command('osd %d'%(osd))
 
     def cb_fullscreen(self, path, args):
         if args[0] > 0.5:
