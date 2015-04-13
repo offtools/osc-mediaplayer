@@ -7,6 +7,8 @@ import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gtk
 from gi.repository import Gio
+from gi.repository import GdkPixbuf
+
 
 class oscbridge(liblo.ServerThread):
     def __init__(self, universe, channel, port, fifo, extargs):
@@ -53,7 +55,8 @@ class Application():
         handlers = {
             "on_quit": self.on_quit,
             "on_start_clicked": self.on_start_clicked,
-            "on_folder_clicked": self.on_folder_clicked
+            "on_folder_clicked": self.on_folder_clicked,
+            "on_about": self.on_about
         }
 
         # init gtk stuff
@@ -156,6 +159,16 @@ class Application():
         elif response == Gtk.ResponseType.CANCEL:
             print("Cancel clicked")
         dialog.destroy()
+        
+    def on_about(self, widget):
+        about = Gtk.AboutDialog()
+        about.set_copyright("(c) Thomas Achtner 2015")
+        about.set_license("GPLv3")
+        about.set_comments("OSC Bridge for mplayer to use with QLC+")
+        about.set_website("https://github.com/offtools/oscmplayer")
+        about.set_logo(GdkPixbuf.Pixbuf.new_from_file('logo.png'))
+        about.run()
+        about.destroy()
 
     def on_quit(self, widget):
         if (self.oscbridge):
