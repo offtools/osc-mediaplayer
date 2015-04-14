@@ -1,14 +1,17 @@
 #!/bin/python
 
+import os
 import subprocess
 import liblo
-import os
+import pyinotify
+import datetime
+import time
+
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gtk
 from gi.repository import Gio
 from gi.repository import GdkPixbuf
-
 
 class oscbridge(liblo.ServerThread):
     def __init__(self, universe, channel, port, fifo, extargs):
@@ -47,16 +50,45 @@ class oscbridge(liblo.ServerThread):
     def osc_fallback(self, path, args):
         print ("oscbridge: received unknown message", path, args)
 
+class EventHandler(pyinotify.ProcessEvent):
+    def __init__(self):
+        self.__current_file = None
+        self.__creation_time = None
+        
+    def process_IN_CREATE(self, event):
+        print ("Creating:", event.pathname, datetime.datetime.now())
+        self.__creation_time = str(datetime.datetime.now())
+        self.__current_file =  event.pathname
+
+    def process_IN_CLOSE_WRITE(self, event):
+        print ("Removing:", event.pathname)
+        self.__current_file = None
+        self.__creation_time = None
+
+    def current(self):
+        return self.__current_file, self.__creation_time
+
 class Application():
     COL_NUMBER = 0
     COL_FILEPATH = 1
+    
+    COL_REPLAY_FILE = 0
+    COL_REPLAY_IN = 1
+    COL_REPLAY_OUT = 2
+    COL_REPLAY_START = 3
+
+    CAPTURE_PATH = '/home/tha'
 
     def __init__(self):
         handlers = {
             "on_quit": self.on_quit,
             "on_start_clicked": self.on_start_clicked,
             "on_folder_clicked": self.on_folder_clicked,
-            "on_about": self.on_about
+            "on_about": self.on_about,
+            "on_replay_in": self.on_replay_in,
+            "on_replay_out": self.on_replay_out,
+            "on_replay_queue": self.on_replay_queue,
+            "on_replay_play": self.on_replay_play
         }
 
         # init gtk stuff
@@ -77,13 +109,29 @@ class Application():
         self.selection = builder.get_object("treeview-selection")
         self.scrollwin = builder.get_object("scrolledwindow1")
         self.context = self.statusbar.get_context_id("mplayer osc bridge")
-        self.button =  builder.get_object("start")
-        
+        self.button_start =  builder.get_object("start")
+        self.replay_model = builder.get_object("liststore1")
+        self.replay_selection = builder.get_object("treeview-selection2")
+
         menuitem = builder.get_object("menuitem_file_quit")
         menuitem.set_sensitive(True)
 
         self.started = False
         self.oscbridge = None
+
+        # OBS
+        self.wm = pyinotify.WatchManager()  # Watch Manager
+        mask = pyinotify.IN_CREATE | pyinotify.IN_CLOSE_WRITE  # watched events
+
+        self.ev = EventHandler()
+        self.notifier = pyinotify.ThreadedNotifier(self.wm, self.ev)
+        self.notifier.start()
+
+        self.wdd = self.wm.add_watch(Application.CAPTURE_PATH, mask, rec=False)
+
+        self.replay_file = ""
+        self.inpoint = ""
+        self.outpoint = ""
 
 #####################################################################
 #       GTK
@@ -126,7 +174,7 @@ class Application():
             except OSError as err:
                 self.statusbar.push(self.context, "OSERROR: {0}".format(err))
 
-            self.button.set_label("Close")
+            self.button_start.set_label("Close")
             self.started = True
         else:
             self.window.destroy()
@@ -174,7 +222,72 @@ class Application():
         if (self.oscbridge):
             self.oscbridge.quit()
             self.oscbridge.stop()
+        self.wm.rm_watch(Application.CAPTURE_PATH, self.wdd.values())            
+        self.notifier.stop()
         Gtk.main_quit()
+
+#####################################################################
+#       OBS Replay
+#####################################################################
+    def on_replay_in(self, widget):
+        f, t = self.ev.current()
+        if (f):
+            self.replay_file = f
+            self.inpoint = str(datetime.datetime.now())
+
+    def on_replay_out(self, widget):
+        f, t = self.ev.current()
+        if (f):
+
+            # check if replay file was set
+            if (self.replay_file == ""):
+                self.replay_file = f
+                
+            if (f != self.replay_file):
+                # File changed  
+                self.inpoint = ""
+                self.outpoint = ""
+                self.replay_file = ""              
+                return
+
+            # check if inpoint was set, otherwise inpoint is 0
+            if(self.inpoint == ""):
+                self.inpoint = t
+                
+            self.outpoint = str(datetime.datetime.now())
+
+    def on_replay_queue(self, widget):
+        f, t = self.ev.current()
+        if (f):
+            # File changed  ?
+            if (f != self.replay_file):
+                self.inpoint = ""
+                self.outpoint = ""
+                self.replay_file = ""
+                return
+
+            if (len(self.inpoint) and len(self.outpoint)):
+                self.replay_model.append([f, self.inpoint, self.outpoint, t])
+                
+                
+    def on_replay_play(self, widget):
+        model, iter = self.replay_selection.get_selected()
+        if (iter):
+            file = model[iter][Application.COL_REPLAY_FILE]
+            fmt = "%Y-%m-%d %H:%M:%S"
+            inp = datetime.datetime.strptime(model[iter][Application.COL_REPLAY_IN][:-7], fmt)
+            out = datetime.datetime.strptime(model[iter][Application.COL_REPLAY_OUT][:-7], fmt)
+            start = datetime.datetime.strptime(model[iter][Application.COL_REPLAY_START][:-7], fmt)
+
+            inp = inp.hour*3600 + inp.minute*60 + inp.second
+            out = out.hour*3600 + out.minute*60 + out.second
+            start = start.hour*3600 + start.minute*60 + start.second
+
+            seek = inp - start
+            length = out - start
+            
+            self.oscbridge.send_command('loadfile "%s"'%(file))
+            self.oscbridge.send_command('seek %d'%(seek))
 
 #####################################################################
 #       OSC
