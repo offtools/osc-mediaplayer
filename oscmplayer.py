@@ -5,12 +5,14 @@ import subprocess
 import liblo
 import pyinotify
 import datetime
+from os.path import expanduser
 
 import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import Gtk
 from gi.repository import Gio
 from gi.repository import GdkPixbuf
+from gi.repository import Json
 
 class oscbridge(liblo.ServerThread):
     def __init__(self, universe, channel, port, fifo, extargs):
@@ -76,8 +78,6 @@ class Application():
     COL_REPLAY_OUT = 2
     COL_REPLAY_START = 3
 
-    CAPTURE_PATH = '/home/tha'
-
     def __init__(self):
         handlers = {
             "on_quit": self.on_quit,
@@ -91,7 +91,12 @@ class Application():
             "on_replay_play": self.on_replay_play,
             "on_config_response": self.on_config_response,
             "on_config_close": self.on_config_close,
-            "on_config": self.on_config
+            "on_config": self.on_config,
+            "on_port_changed": self.on_port_changed,
+            "on_universe_changed": self.on_universe_changed,
+            "on_address_changed": self.on_address_changed,
+            "on_fifo_activate": self.on_fifo_activate,
+            "on_extargs_activate": self.on_extargs_activate
         }
 
         # init gtk stuff
@@ -105,7 +110,6 @@ class Application():
         self.channel = builder.get_object("adjustment_channel")
         self.fifo = builder.get_object("fifo")
         self.statusbar = builder.get_object("statusbar")
-        self.filechooser = builder.get_object("filechooserwidget")
         self.extargs = builder.get_object("extargs")
         self.model = builder.get_object("liststore")
         self.tree = builder.get_object("treeview")
@@ -117,7 +121,15 @@ class Application():
         self.replay_selection = builder.get_object("treeview-selection2")
         self.configdialog =  builder.get_object("configdialog")
         self.configdialog.add_button("Close", Gtk.ResponseType.OK)
-        self.configdialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        
+        home = expanduser("~")
+
+        self.folder_replay = home
+        self.folder_playback = home
+        self.filechooser_replay = builder.get_object("filechooser_replay")
+        self.filechooser_replay.set_current_folder_uri('file:///%s'%(home))
+        filechooser_playback = builder.get_object("filechooser_playback")
+        filechooser_playback.set_current_folder_uri('file:///%s'%(home))       
 
         menuitem = builder.get_object("menuitem_file_quit")
         menuitem.set_sensitive(True)
@@ -128,18 +140,7 @@ class Application():
         self.oscbridge = None
 
         # OBS
-        self.wm = pyinotify.WatchManager()  # Watch Manager
-        mask = pyinotify.IN_CREATE | pyinotify.IN_CLOSE_WRITE  # watched events
-
-        self.ev = EventHandler()
-        self.notifier = pyinotify.ThreadedNotifier(self.wm, self.ev)
-        self.notifier.start()
-
-        self.wdd = self.wm.add_watch(Application.CAPTURE_PATH, mask, rec=False)
-
-        self.replay_file = ""
-        self.inpoint = ""
-        self.outpoint = ""
+        self.start_monitor()
 
 #####################################################################
 #       GTK
@@ -149,46 +150,68 @@ class Application():
         self.window.show_all()
         Gtk.main()
 
+    def start_bridge(self):
+        try:
+            if self.oscbridge:
+                del self.oscbridge
+                
+            universe = int(self.universe.get_value())-1
+            port = int(self.port.get_value())
+            channel = int(self.channel.get_value())-1
+            mplfifo = self.fifo.get_text()
+            extargs = self.extargs.get_text().split()
+
+            self.oscbridge = oscbridge(universe, channel, port, mplfifo, extargs)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel), 'f', self.cb_stop)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+1), 'f', self.cb_pause)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+2), 'f', self.cb_index)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+3), 'f', self.cb_loadfile)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+4), 'f', self.cb_next)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+5), 'f', self.cb_prev)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+6), 'f', self.cb_brightness)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+7), 'f', self.cb_contrast)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+8), 'f', self.cb_gamma)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+9), 'f', self.cb_hue)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+10), 'f', self.cb_saturation)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+11), 'f', self.cb_volume)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+12), 'f', self.cb_osd)
+            self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+13), 'f', self.cb_fullscreen)
+
+            self.oscbridge.start()
+
+        except liblo.ServerError as err:
+            self.statusbar.push(self.context, "ServerError: {0}".format(err))
+        except OSError as err:
+            self.statusbar.push(self.context, "OSERROR: {0}".format(err))
+
+    def stop_bridge(self):
+        del self.oscbridge
+        self.oscbridge = None
+
+    def start_monitor(self):
+        self.wm = pyinotify.WatchManager()  # Watch Manager
+        mask = pyinotify.IN_CREATE | pyinotify.IN_CLOSE_WRITE  # watched events
+
+        self.ev = EventHandler()
+        self.notifier = pyinotify.ThreadedNotifier(self.wm, self.ev)
+        self.notifier.start()
+
+        self.wdd = self.wm.add_watch(self.folder_replay, mask, rec=False)
+
+        self.replay_file = ""
+        self.inpoint = ""
+        self.outpoint = ""
+
+    def stop_monitor(self):
+        pass
+
     def on_start_toggled(self, widget):
         if widget.get_active():
-            try:
-                if self.oscbridge:
-                    del self.oscbridge
-                    
-                universe = int(self.universe.get_value())-1
-                port = int(self.port.get_value())
-                channel = int(self.channel.get_value())-1
-                mplfifo = self.fifo.get_text()
-                extargs = self.extargs.get_text().split()
-
-                self.oscbridge = oscbridge(universe, channel, port, mplfifo, extargs)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel), 'f', self.cb_stop)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+1), 'f', self.cb_pause)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+2), 'f', self.cb_index)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+3), 'f', self.cb_loadfile)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+4), 'f', self.cb_next)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+5), 'f', self.cb_prev)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+6), 'f', self.cb_brightness)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+7), 'f', self.cb_contrast)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+8), 'f', self.cb_gamma)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+9), 'f', self.cb_hue)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+10), 'f', self.cb_saturation)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+11), 'f', self.cb_volume)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+12), 'f', self.cb_osd)
-                self.oscbridge.add_method("/%i/dmx/%i"%(universe,channel+13), 'f', self.cb_fullscreen)
-
-                self.oscbridge.start()
-                self.statusbar.push(self.context, "connected")
-
-            except liblo.ServerError as err:
-                self.statusbar.push(self.context, "ServerError: {0}".format(err))
-            except OSError as err:
-                self.statusbar.push(self.context, "OSERROR: {0}".format(err))
-
+            self.start_bridge()
+            self.statusbar.push(self.context, "connected")
             self.starttoggle.set_label("Close")
         else:
-            del self.oscbridge
-            self.oscbridge = None
+            self.stop_bridge()
             self.statusbar.push(self.context, "disconnected")
             self.starttoggle.set_label("Start")
 
@@ -199,11 +222,26 @@ class Application():
         pass
     
     def on_config(self, widget):
-        print("show config")
-        response = self.configdialog.run()
-        if response == Gtk.ResponseType.OK:
-            pass
+        self.configdialog.run()
+        if self.oscbridge and self.oscbridge.port != int(self.port.get_value()):
+            self.stop_bridge()
+        self.start_bridge()
         self.configdialog.hide()
+
+    def on_port_changed(self, widget):
+        pass
+
+    def on_universe_changed(self, widget):
+        pass
+
+    def on_address_changed(self, widget):
+        pass
+
+    def on_fifo_activate(self, widget):
+        pass
+
+    def on_extargs_activate(self, widget):
+        pass
 
     def on_playbackfolder_set(self, widget):
         folder = widget.get_file().get_path()
@@ -222,12 +260,13 @@ class Application():
                 print("model append ", len(self.model), i, filelist[i])
                 self.model.append([i, filelist[i]])
 
-            tp = Gtk.TreePath.new_from_indices([0])
+            #tp = Gtk.TreePath.new_from_indices([0])
+            tp = Gtk.TreePath.new_from_string("0")
             iter = self.model.get_iter(tp)
             self.selection.select_iter(iter)
 
     def on_replayfolder_set(self, widget):
-        pass
+        folder = widget.get_file().get_path()
         
     def on_about(self, widget):
         about = Gtk.AboutDialog()
@@ -243,7 +282,8 @@ class Application():
         if (self.oscbridge):
             self.oscbridge.quit()
             self.oscbridge.stop()
-        self.wm.rm_watch(Application.CAPTURE_PATH, self.wdd.values())            
+        #folder = self.filechooser_replay.get_file().get_path()
+        self.wm.rm_watch(self.folder_replay, self.wdd.values())            
         self.notifier.stop()
         Gtk.main_quit()
 

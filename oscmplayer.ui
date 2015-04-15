@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
+<!-- Generated with glade 3.16.1 -->
 <interface>
-  <requires lib="gtk+" version="3.12"/>
+  <requires lib="gtk+" version="3.10"/>
   <object class="GtkAccelGroup" id="accelgroup"/>
   <object class="GtkActionGroup" id="actiongroup">
     <property name="accel_group">accelgroup</property>
@@ -283,9 +283,6 @@
                     <property name="position">0</property>
                   </packing>
                 </child>
-                <child>
-                  <placeholder/>
-                </child>
               </object>
               <packing>
                 <property name="position">1</property>
@@ -312,6 +309,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="shadow_type">in</property>
+                    <property name="min_content_height">300</property>
                     <child>
                       <object class="GtkTreeView" id="treeview1">
                         <property name="visible">True</property>
@@ -442,7 +440,6 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Replay</property>
-                <property name="angle">0.050000000000000003</property>
               </object>
               <packing>
                 <property name="position">2</property>
@@ -451,7 +448,7 @@
             </child>
           </object>
           <packing>
-            <property name="expand">False</property>
+            <property name="expand">True</property>
             <property name="fill">True</property>
             <property name="position">1</property>
           </packing>
@@ -464,8 +461,6 @@
               <object class="GtkStatusbar" id="statusbar">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="margin_start">10</property>
-                <property name="margin_end">10</property>
                 <property name="orientation">vertical</property>
                 <property name="spacing">2</property>
               </object>
@@ -492,6 +487,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="pack_type">end</property>
             <property name="position">2</property>
           </packing>
         </child>
@@ -528,6 +524,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
+            <property name="pack_type">end</property>
             <property name="position">0</property>
           </packing>
         </child>
@@ -569,10 +566,13 @@
                         <property name="input_purpose">number</property>
                         <property name="adjustment">adjustment_universe</property>
                         <property name="value">1</property>
+                        <signal name="value-changed" handler="on_universe_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">1</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -583,10 +583,13 @@
                         <property name="margin_bottom">3</property>
                         <property name="hexpand">True</property>
                         <property name="text" translatable="yes">/tmp/mplayer.fifo</property>
+                        <signal name="activate" handler="on_fifo_activate" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">3</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -603,10 +606,13 @@
                         <property name="input_purpose">number</property>
                         <property name="adjustment">adjustment_channel</property>
                         <property name="value">1</property>
+                        <signal name="value-changed" handler="on_address_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">2</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -617,10 +623,13 @@
                         <property name="margin_bottom">3</property>
                         <property name="hexpand">True</property>
                         <property name="placeholder_text" translatable="yes">geometry 640x480+0+0</property>
+                        <signal name="activate" handler="on_extargs_activate" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">5</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -633,6 +642,8 @@
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">0</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -644,6 +655,8 @@
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">1</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -655,6 +668,8 @@
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">3</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -666,6 +681,8 @@
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">2</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -677,6 +694,8 @@
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">4</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -688,6 +707,8 @@
                       <packing>
                         <property name="left_attach">0</property>
                         <property name="top_attach">5</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -701,6 +722,8 @@
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">4</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                     <child>
@@ -712,16 +735,18 @@
                         <property name="hexpand">True</property>
                         <property name="max_length">5</property>
                         <property name="width_chars">5</property>
-                        <property name="max_width_chars">5</property>
                         <property name="text" translatable="yes">9999</property>
                         <property name="xalign">1</property>
                         <property name="input_purpose">number</property>
                         <property name="adjustment">adjustment_port</property>
                         <property name="value">9999</property>
+                        <signal name="value-changed" handler="on_port_changed" swapped="no"/>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="top_attach">0</property>
+                        <property name="width">1</property>
+                        <property name="height">1</property>
                       </packing>
                     </child>
                   </object>
@@ -771,6 +796,8 @@
                           <packing>
                             <property name="left_attach">1</property>
                             <property name="top_attach">0</property>
+                            <property name="width">1</property>
+                            <property name="height">1</property>
                           </packing>
                         </child>
                         <child>
@@ -782,6 +809,8 @@
                           <packing>
                             <property name="left_attach">0</property>
                             <property name="top_attach">0</property>
+                            <property name="width">1</property>
+                            <property name="height">1</property>
                           </packing>
                         </child>
                       </object>
