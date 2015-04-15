@@ -5,7 +5,6 @@ import subprocess
 import liblo
 import pyinotify
 import datetime
-import time
 
 import gi
 gi.require_version('Gst', '1.0')
@@ -25,8 +24,8 @@ class oscbridge(liblo.ServerThread):
         self.__fifo = open(self.__fifoname, 'w')
         self.__fifo.flush()
 
-
     def __del__(self):
+        self.__proc.terminate()
         os.remove(self.__fifoname)
 
     def send_command(self, msg):
@@ -82,13 +81,17 @@ class Application():
     def __init__(self):
         handlers = {
             "on_quit": self.on_quit,
-            "on_start_clicked": self.on_start_clicked,
-            "on_folder_clicked": self.on_folder_clicked,
+            "on_start_toggled": self.on_start_toggled,
+            "on_playbackfolder_set": self.on_playbackfolder_set,
+            "on_replayfolder_set": self.on_replayfolder_set,
             "on_about": self.on_about,
             "on_replay_in": self.on_replay_in,
             "on_replay_out": self.on_replay_out,
             "on_replay_queue": self.on_replay_queue,
-            "on_replay_play": self.on_replay_play
+            "on_replay_play": self.on_replay_play,
+            "on_config_response": self.on_config_response,
+            "on_config_close": self.on_config_close,
+            "on_config": self.on_config
         }
 
         # init gtk stuff
@@ -109,11 +112,16 @@ class Application():
         self.selection = builder.get_object("treeview-selection")
         self.scrollwin = builder.get_object("scrolledwindow1")
         self.context = self.statusbar.get_context_id("mplayer osc bridge")
-        self.button_start =  builder.get_object("start")
+        self.starttoggle =  builder.get_object("playtoggle")
         self.replay_model = builder.get_object("liststore1")
         self.replay_selection = builder.get_object("treeview-selection2")
+        self.configdialog =  builder.get_object("configdialog")
+        self.configdialog.add_button("Close", Gtk.ResponseType.OK)
+        self.configdialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
 
         menuitem = builder.get_object("menuitem_file_quit")
+        menuitem.set_sensitive(True)
+        menuitem = builder.get_object("menuitem_file_config")
         menuitem.set_sensitive(True)
 
         self.started = False
@@ -141,9 +149,12 @@ class Application():
         self.window.show_all()
         Gtk.main()
 
-    def on_start_clicked(self, widget):
-        if self.started == False:
+    def on_start_toggled(self, widget):
+        if widget.get_active():
             try:
+                if self.oscbridge:
+                    del self.oscbridge
+                    
                 universe = int(self.universe.get_value())-1
                 port = int(self.port.get_value())
                 channel = int(self.channel.get_value())-1
@@ -174,39 +185,49 @@ class Application():
             except OSError as err:
                 self.statusbar.push(self.context, "OSERROR: {0}".format(err))
 
-            self.button_start.set_label("Close")
-            self.started = True
+            self.starttoggle.set_label("Close")
         else:
-            self.window.destroy()
+            del self.oscbridge
+            self.oscbridge = None
+            self.statusbar.push(self.context, "disconnected")
+            self.starttoggle.set_label("Start")
 
-    def on_folder_clicked(self, widget):
-        dialog = Gtk.FileChooserDialog("Please choose a playback folder", self.window, Gtk.FileChooserAction.SELECT_FOLDER,
-            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
-             Gtk.STOCK_OPEN, Gtk.ResponseType.OK))
-
-        response = dialog.run()
+    def on_config_close(self, widget):
+        pass
+    
+    def on_config_response(self, widget, response):
+        pass
+    
+    def on_config(self, widget):
+        print("show config")
+        response = self.configdialog.run()
         if response == Gtk.ResponseType.OK:
-            folder = dialog.get_current_folder()
-            filelist = list()
-            for i in os.listdir(folder):
-                fpath = os.path.join(folder, i)
-                content_type, val = Gio.content_type_guess(filename=fpath, data=None)
-                print(fpath, content_type, Gio.content_type_is_a(content_type, 'audio/*') or Gio.content_type_is_a(content_type, 'image/*') or Gio.content_type_is_a(content_type, 'video/*'))
-                if Gio.content_type_is_a(content_type, 'audio/*') or Gio.content_type_is_a(content_type, 'image/*') or Gio.content_type_is_a(content_type, 'video/*'):
-                    filelist.append(fpath)
-            filelist = sorted(filelist)
-            if (len(filelist)):
-                self.model.clear()
-                for i in range(len(filelist)):
-                    print("model append ", len(self.model), i, filelist[i])
-                    self.model.append([i, filelist[i]])
+            pass
+        self.configdialog.hide()
 
-                tp = Gtk.TreePath.new_from_indices([0])
-                iter = self.model.get_iter(tp)
-                self.selection.select_iter(iter)
-        elif response == Gtk.ResponseType.CANCEL:
-            print("Cancel clicked")
-        dialog.destroy()
+    def on_playbackfolder_set(self, widget):
+        folder = widget.get_file().get_path()
+
+        filelist = list()
+        for i in os.listdir(folder):
+            fpath = os.path.join(folder, i)
+            content_type, val = Gio.content_type_guess(filename=fpath, data=None)
+            print(fpath, content_type, Gio.content_type_is_a(content_type, 'audio/*') or Gio.content_type_is_a(content_type, 'image/*') or Gio.content_type_is_a(content_type, 'video/*'))
+            if Gio.content_type_is_a(content_type, 'audio/*') or Gio.content_type_is_a(content_type, 'image/*') or Gio.content_type_is_a(content_type, 'video/*'):
+                filelist.append(fpath)
+        filelist = sorted(filelist)
+        if (len(filelist)):
+            self.model.clear()
+            for i in range(len(filelist)):
+                print("model append ", len(self.model), i, filelist[i])
+                self.model.append([i, filelist[i]])
+
+            tp = Gtk.TreePath.new_from_indices([0])
+            iter = self.model.get_iter(tp)
+            self.selection.select_iter(iter)
+
+    def on_replayfolder_set(self, widget):
+        pass
         
     def on_about(self, widget):
         about = Gtk.AboutDialog()
