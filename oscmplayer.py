@@ -67,6 +67,8 @@ class Application():
             "on_replay_play": self.on_replay_play,
             "on_replay_speed_changed": self.on_replay_speed_changed,
             "on_replay_speed_reset": self.on_replay_speed_reset,
+            "on_replay_next": self.on_replay_next,
+            "on_replay_prev": self.on_replay_prev,
             # player
             "on_player_play": self.on_player_play,
             "on_player_pause": self.on_player_pause,
@@ -111,6 +113,7 @@ class Application():
         self.rp_speed_label = builder.get_object("label13")
         self.rp_speed = builder.get_object("adjustment_rp_speed")
         self.rp_preroll = builder.get_object("adjustment_rp_preroll")
+        self.rp_tree = builder.get_object("treeview1")
 
         self.configdialog =  builder.get_object("configdialog")
         self.configdialog.add_button("Close", Gtk.ResponseType.OK)
@@ -186,6 +189,8 @@ class Application():
             self.server.add_method("/%i/dmx/%i"%(universe,channel+15), 'f', self.cb_outpoint)
             self.server.add_method("/%i/dmx/%i"%(universe,channel+16), 'f', self.cb_cue)
             self.server.add_method("/%i/dmx/%i"%(universe,channel+17), 'f', self.cb_startreplay)
+            self.server.add_method("/%i/dmx/%i"%(universe,channel+18), 'f', self.cb_rp_next)
+            self.server.add_method("/%i/dmx/%i"%(universe,channel+19), 'f', self.cb_rp_prev)
             self.server.add_method(None, None, self.osc_fallback)
 
             self.server.start()
@@ -638,6 +643,22 @@ class Application():
     def stop_replay(self):
         pass
 
+    def replay_select_next(self):
+        model, iter = self.rp_selection.get_selected()
+        iter = model.iter_next(iter)
+        if (iter):
+            self.rp_selection.select_iter(iter)
+            p = self.rp_model.get_path(iter)
+            self.rp_tree.scroll_to_cell(p)
+
+    def replay_select_prev(self):
+        model, iter = self.rp_selection.get_selected()
+        iter = model.iter_previous(iter)
+        if (iter):
+            self.rp_selection.select_iter(iter)
+            p = self.rp_model.get_path(iter)
+            self.rp_tree.scroll_to_cell(p)
+
 #####################################################################
 #       GTK  Replay Callbacks
 #####################################################################
@@ -669,6 +690,12 @@ class Application():
 
     def on_replay_speed_reset(self, widget):
         self.rp_speed.set_value(0)
+        
+    def on_replay_next(self, widget):
+        self.replay_select_next()
+            
+    def on_replay_prev(self, widget):
+        self.replay_select_prev()
 
 #####################################################################
 #       OSC
@@ -787,6 +814,14 @@ class Application():
     def cb_startreplay(self, path, args):
         if args[0] == 1.0:
             self.start_replay()
+
+    def cb_rp_next(self, path, args):
+        if args[0] == 1.0:
+            self.replay_select_next()
+
+    def cb_rp_prev(self, path, args):
+        if args[0] == 1.0:
+            self.replay_select_prev()
 
 if __name__ == "__main__":
     app = Application()

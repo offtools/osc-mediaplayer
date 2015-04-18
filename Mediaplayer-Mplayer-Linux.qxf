@@ -104,12 +104,22 @@
   <Capability Max="254" Min="0"></Capability>
   <Capability Max="255" Min="255">start Replay</Capability>
  </Channel>
+ <Channel Name="select next Replay">
+  <Group Byte="0">Intensity</Group>
+  <Capability Max="254" Min="0"></Capability>
+  <Capability Max="255" Min="255">select next Replay</Capability>
+ </Channel>
+ <Channel Name="select prev Replay">
+  <Group Byte="0">Intensity</Group>
+  <Capability Max="254" Min="0"></Capability>
+  <Capability Max="255" Min="255">select prev Replay</Capability>
+ </Channel>
  <Mode Name="Mode 1">
   <Physical>
-   <Bulb Type="" Lumens="0" ColourTemperature="0"/>
-   <Dimensions Weight="0" Height="0" Width="0" Depth="0"/>
-   <Lens Name="Other" DegreesMin="0" DegreesMax="0"/>
-   <Focus Type="Fixed" PanMax="0" TiltMax="0"/>
+   <Bulb Lumens="0" Type="" ColourTemperature="0"/>
+   <Dimensions Height="0" Depth="0" Width="0" Weight="0"/>
+   <Lens Name="Other" DegreesMax="0" DegreesMin="0"/>
+   <Focus Type="Fixed" TiltMax="0" PanMax="0"/>
    <Technical DmxConnector="5-pin" PowerConsumption="0"/>
   </Physical>
   <Channel Number="0">Stop</Channel>
@@ -130,5 +140,7 @@
   <Channel Number="15">set Outpoint</Channel>
   <Channel Number="16">make Cue</Channel>
   <Channel Number="17">start Replay</Channel>
+  <Channel Number="18">select next Replay</Channel>
+  <Channel Number="19">select prev Replay</Channel>
  </Mode>
 </FixtureDefinition>
