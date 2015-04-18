@@ -3,7 +3,7 @@
 <FixtureDefinition xmlns="http://qlcplus.sourceforge.net/FixtureDefinition">
  <Creator>
   <Name>Q Light Controller Plus</Name>
-  <Version>4.8.5 GIT</Version>
+  <Version>4.8.6 GIT</Version>
   <Author>Thomas Achtner</Author>
  </Creator>
  <Manufacturer>Mediaplayer</Manufacturer>
@@ -11,100 +11,124 @@
  <Type>Other</Type>
  <Channel Name="Stop">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="0"></Capability>
-  <Capability Min="255" Max="255">stop</Capability>
+  <Capability Max="0" Min="0"></Capability>
+  <Capability Max="255" Min="255">stop</Capability>
  </Channel>
  <Channel Name="Pause">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="0"></Capability>
-  <Capability Min="255" Max="255">pause</Capability>
+  <Capability Max="0" Min="0"></Capability>
+  <Capability Max="255" Min="255">pause</Capability>
  </Channel>
  <Channel Name="Index">
-  <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="255">Number of the file in the playback folder</Capability>
+  <Group Byte="0">Maintenance</Group>
+  <Capability Max="255" Min="0">Number of the file in the playback folder</Capability>
  </Channel>
  <Channel Name="Next">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="0"></Capability>
-  <Capability Min="255" Max="255">next</Capability>
+  <Capability Max="254" Min="0"></Capability>
+  <Capability Max="255" Min="255">next</Capability>
  </Channel>
  <Channel Name="Prev">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="0"></Capability>
-  <Capability Min="255" Max="255">prev</Capability>
+  <Capability Max="0" Min="0"></Capability>
+  <Capability Max="255" Min="255">prev</Capability>
  </Channel>
  <Channel Name="Brightness">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="126">minus</Capability>
-  <Capability Min="127" Max="127">default</Capability>
-  <Capability Min="128" Max="255">plus</Capability>
+  <Capability Max="126" Min="0">minus</Capability>
+  <Capability Max="127" Min="127">default</Capability>
+  <Capability Max="255" Min="128">plus</Capability>
  </Channel>
  <Channel Name="Contrast">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="126">minus</Capability>
-  <Capability Min="127" Max="127">default</Capability>
-  <Capability Min="128" Max="255">plus</Capability>
+  <Capability Max="126" Min="0">minus</Capability>
+  <Capability Max="127" Min="127">default</Capability>
+  <Capability Max="255" Min="128">plus</Capability>
  </Channel>
  <Channel Name="Gamma">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="126">minus</Capability>
-  <Capability Min="127" Max="127">default</Capability>
-  <Capability Min="128" Max="255">plus</Capability>
+  <Capability Max="126" Min="0">minus</Capability>
+  <Capability Max="127" Min="127">default</Capability>
+  <Capability Max="255" Min="128">plus</Capability>
  </Channel>
  <Channel Name="Hue">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="126">minus</Capability>
-  <Capability Min="127" Max="127">default</Capability>
-  <Capability Min="128" Max="255">plus</Capability>
+  <Capability Max="126" Min="0">minus</Capability>
+  <Capability Max="127" Min="127">default</Capability>
+  <Capability Max="255" Min="128">plus</Capability>
  </Channel>
  <Channel Name="Saturation">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="126">minus</Capability>
-  <Capability Min="127" Max="127">default</Capability>
-  <Capability Min="128" Max="255">plus</Capability>
+  <Capability Max="126" Min="0">minus</Capability>
+  <Capability Max="127" Min="127">default</Capability>
+  <Capability Max="255" Min="128">plus</Capability>
  </Channel>
  <Channel Name="Volume">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="255">Volume</Capability>
+  <Capability Max="255" Min="0">Volume</Capability>
  </Channel>
  <Channel Name="Load">
   <Group Byte="0">Intensity</Group>
-  <Capability Min="0" Max="0"></Capability>
-  <Capability Min="255" Max="255">loadfile</Capability>
+  <Capability Max="0" Min="0"></Capability>
+  <Capability Max="255" Min="255">loadfile</Capability>
  </Channel>
  <Channel Name="osd">
   <Group Byte="0">Maintenance</Group>
-  <Capability Min="0" Max="62">Capability 1</Capability>
-  <Capability Min="63" Max="125">Capability 2</Capability>
-  <Capability Min="126" Max="188">Capability 3</Capability>
-  <Capability Min="189" Max="251">Capability 4</Capability>
+  <Capability Max="62" Min="0">Capability 1</Capability>
+  <Capability Max="125" Min="63">Capability 2</Capability>
+  <Capability Max="188" Min="126">Capability 3</Capability>
+  <Capability Max="251" Min="189">Capability 4</Capability>
  </Channel>
  <Channel Name="fullscreen">
   <Group Byte="0">Maintenance</Group>
-  <Capability Min="0" Max="127">window</Capability>
-  <Capability Min="128" Max="255">fullscreen</Capability>
+  <Capability Max="127" Min="0">window</Capability>
+  <Capability Max="255" Min="128">fullscreen</Capability>
+ </Channel>
+ <Channel Name="set Inpoint">
+  <Group Byte="0">Intensity</Group>
+  <Capability Max="254" Min="0"></Capability>
+  <Capability Max="255" Min="255">inpoint</Capability>
+ </Channel>
+ <Channel Name="set Outpoint">
+  <Group Byte="0">Intensity</Group>
+  <Capability Max="254" Min="0"></Capability>
+  <Capability Max="255" Min="255">outpoint</Capability>
+ </Channel>
+ <Channel Name="make Cue">
+  <Group Byte="0">Intensity</Group>
+  <Capability Max="254" Min="0"></Capability>
+  <Capability Max="255" Min="255">make cue</Capability>
+ </Channel>
+ <Channel Name="start Replay">
+  <Group Byte="0">Intensity</Group>
+  <Capability Max="254" Min="0"></Capability>
+  <Capability Max="255" Min="255">start Replay</Capability>
  </Channel>
  <Mode Name="Mode 1">
   <Physical>
-   <Bulb Type="" ColourTemperature="0" Lumens="0"/>
-   <Dimensions Height="0" Width="0" Depth="0" Weight="0"/>
-   <Lens Name="Other" DegreesMax="0" DegreesMin="0"/>
-   <Focus Type="Fixed" TiltMax="0" PanMax="0"/>
-   <Technical PowerConsumption="0" DmxConnector="5-pin"/>
+   <Bulb Type="" Lumens="0" ColourTemperature="0"/>
+   <Dimensions Weight="0" Height="0" Width="0" Depth="0"/>
+   <Lens Name="Other" DegreesMin="0" DegreesMax="0"/>
+   <Focus Type="Fixed" PanMax="0" TiltMax="0"/>
+   <Technical DmxConnector="5-pin" PowerConsumption="0"/>
   </Physical>
   <Channel Number="0">Stop</Channel>
   <Channel Number="1">Pause</Channel>
   <Channel Number="2">Index</Channel>
-  <Channel Number="3">Load</Channel>
-  <Channel Number="4">Next</Channel>
-  <Channel Number="5">Prev</Channel>
-  <Channel Number="6">Brightness</Channel>
-  <Channel Number="7">Contrast</Channel>
-  <Channel Number="8">Gamma</Channel>
-  <Channel Number="9">Hue</Channel>
-  <Channel Number="10">Saturation</Channel>
-  <Channel Number="11">Volume</Channel>
+  <Channel Number="3">Next</Channel>
+  <Channel Number="4">Prev</Channel>
+  <Channel Number="5">Brightness</Channel>
+  <Channel Number="6">Contrast</Channel>
+  <Channel Number="7">Gamma</Channel>
+  <Channel Number="8">Hue</Channel>
+  <Channel Number="9">Saturation</Channel>
+  <Channel Number="10">Volume</Channel>
+  <Channel Number="11">Load</Channel>
   <Channel Number="12">osd</Channel>
   <Channel Number="13">fullscreen</Channel>
+  <Channel Number="14">set Inpoint</Channel>
+  <Channel Number="15">set Outpoint</Channel>
+  <Channel Number="16">make Cue</Channel>
+  <Channel Number="17">start Replay</Channel>
  </Mode>
 </FixtureDefinition>
