@@ -12,41 +12,42 @@ import json
 from os.path import expanduser
 
 import gi
-gi.require_version('Gst', '1.0')
 from gi.repository import Gtk
 from gi.repository import Gio
 from gi.repository import GdkPixbuf
 from gi.repository import Json
 
+
 class EventHandler(pyinotify.ProcessEvent):
     def __init__(self):
         self.__current_file = None
         self.__creation_time = None
-        
+
     def process_IN_CREATE(self, event):
-        print ("Creating:", event.pathname, datetime.datetime.now())
+        print("Creating:", event.pathname, datetime.datetime.now())
         self.__creation_time = str(datetime.datetime.now())
-        self.__current_file =  event.pathname
+        self.__current_file = event.pathname
 
     def process_IN_CLOSE_WRITE(self, event):
-        print ("Removing:", event.pathname)
+        print("Removing:", event.pathname)
         self.__current_file = None
         self.__creation_time = None
 
     def current(self):
         return self.__current_file, self.__creation_time
 
+
 class Application():
     COL_NUMBER = 0
     COL_FILEPATH = 1
-    
+
     COL_REPLAY_FILE = 0
     COL_REPLAY_IN = 1
     COL_REPLAY_OUT = 2
     COL_REPLAY_START = 3
 
 
-    PLAYER_STATUS_STOPPED = 0 
+    PLAYER_STATUS_STOPPED = 0
     PLAYER_STATUS_PLAYING = 1
     PLAYER_STATUS_PAUSED = 2
 
@@ -58,7 +59,7 @@ class Application():
             "on_load": self.on_load,
             "on_save": self.on_save,
             "on_saveas": self.on_saveas,
-            # start 
+            # start
             "on_start_toggled": self.on_start_toggled,
             #replay
             "on_replay_in": self.on_replay_in,
@@ -69,12 +70,13 @@ class Application():
             "on_replay_speed_reset": self.on_replay_speed_reset,
             "on_replay_next": self.on_replay_next,
             "on_replay_prev": self.on_replay_prev,
+            "on_replay_seek": self.on_replay_seek,
             # player
             "on_player_play": self.on_player_play,
             "on_player_pause": self.on_player_pause,
             "on_player_stop": self.on_player_stop,
             "on_player_next": self.on_player_next,
-            "on_player_prev": self.on_player_prev,            
+            "on_player_prev": self.on_player_prev,
             # config
             "on_config": self.on_config,
             # config callbacks
@@ -107,21 +109,22 @@ class Application():
         self.pb_model = builder.get_object("liststore")
         self.pb_tree = builder.get_object("treeview")
         self.pb_selection = builder.get_object("treeview-selection")
-        
+
         self.rp_model = builder.get_object("liststore1")
         self.rp_selection = builder.get_object("treeview-selection2")
         self.rp_speed_label = builder.get_object("label13")
         self.rp_speed = builder.get_object("adjustment_rp_speed")
         self.rp_preroll = builder.get_object("adjustment_rp_preroll")
         self.rp_tree = builder.get_object("treeview1")
+        self.rp_seek = builder.get_object("adjustment_rp_seek")
 
         self.configdialog =  builder.get_object("configdialog")
         self.configdialog.add_button("Close", Gtk.ResponseType.OK)
-        
+
         home = expanduser("~")
         self.pb_folder = home
         self.filechooser_playback = builder.get_object("filechooser_playback")
-        self.filechooser_playback.set_current_folder_uri('file:///%s'%(self.pb_folder))       
+        self.filechooser_playback.set_current_folder_uri('file:///%s'%(self.pb_folder))
         self.rp_folder = home
         self.filechooser_replay = builder.get_object("filechooser_replay")
         self.filechooser_replay.set_current_folder_uri('file:///%s'%(self.rp_folder))
@@ -161,7 +164,7 @@ class Application():
     def run(self):
         self.window.show_all()
         Gtk.main()
-            
+
     def start_bridge(self):
         try:
             universe = int(self.universe.get_value())-1
@@ -169,7 +172,7 @@ class Application():
             channel = int(self.channel.get_value())-1
             spath = self.fifo.get_text()
             extargs = self.extargs.get_text().split()
-    
+
             self.server = liblo.ServerThread(port)
             self.server.add_method("/%i/dmx/%i"%(universe,channel), 'f', self.cb_stop)
             self.server.add_method("/%i/dmx/%i"%(universe,channel+1), 'f', self.cb_pause)
@@ -206,7 +209,9 @@ class Application():
                     return True
                 except ConnectionRefusedError:
                     return False
-                
+                except OSError:
+                    return False
+
             while try_connect(self.mpvsock, spath) == False:
                 time.sleep(1)
 
@@ -236,17 +241,19 @@ class Application():
 
         self.statusbar.push(self.context, "disconnected")
         self.starttoggle.set_label("Start")
-            
+
     def start_monitor(self):
         self.replay_file = ""
         self.inpoint = ""
         self.outpoint = ""
 
         mask = pyinotify.IN_CREATE | pyinotify.IN_CLOSE_WRITE  # watched events
-        self.wdd = self.watch_manager.add_watch(self.rp_folder, mask, rec=False)
+        self.wdd = self.watch_manager.add_watch(self.rp_folder,
+                                                mask,
+                                                rec=False)
 
     def stop_monitor(self):
-        self.watch_manager.rm_watch(self.rp_folder, self.wdd.values())            
+        self.watch_manager.rm_watch(self.rp_folder, self.wdd.values())
 
     def on_start_toggled(self, widget):
         if widget.get_active():
@@ -287,7 +294,6 @@ class Application():
                 print("model append ", len(self.pb_model), i, filelist[i])
                 self.pb_model.append([i, filelist[i]])
 
-            #tp = Gtk.TreePath.new_from_indices([0])
             tp = Gtk.TreePath.new_from_string("0")
             iter = self.pb_model.get_iter(tp)
             self.pb_selection.select_iter(iter)
@@ -300,26 +306,26 @@ class Application():
         self.rp_folder = widget.get_file().get_path()
         self.stop_monitor()
         self.start_monitor()
-        
+
 #####################################################################
 #       Action Callbacks
 #####################################################################
-    
+
     def on_load(self, widget):
         dialog = Gtk.FileChooserDialog("Please choose a file", self.window,
                                        Gtk.FileChooserAction.OPEN,
                                        ("_Cancel", Gtk.ResponseType.CANCEL,
                                         "_Open", Gtk.ResponseType.OK))
-    
+
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             filename = dialog.get_filename()
             parser = Json.Parser.new()
             parser.load_from_file(filename)
             node = parser.get_root()
-            
+
             reader = Json.Reader.new(node)
-            
+
             reader.read_member('player')
 
             reader.read_member('port')
@@ -348,7 +354,7 @@ class Application():
 
 
             reader.read_member('replay')
-            
+
             reader.read_member('folder')
             self.rp_folder = reader.get_string_value()
             self.filechooser_replay.set_current_folder_uri('file:///%s'%(self.rp_folder))
@@ -374,7 +380,7 @@ class Application():
     def save(self, filename):
         builder = Json.Builder.new()
         app = builder.begin_object()
-        
+
         member = app.set_member_name('player')
         player = member.begin_object()
         port = player.set_member_name('port')
@@ -386,9 +392,9 @@ class Application():
         extargs = player.set_member_name('extargs')
         extargs.add_string_value(self.extargs.get_text())
         pb = player.set_member_name('folder')
-        pb.add_string_value(self.pb_folder)            
+        pb.add_string_value(self.pb_folder)
         player.end_object()
-        
+
         member = app.set_member_name('replay')
         rp = member.begin_object()
         f = player.set_member_name('folder')
@@ -398,7 +404,7 @@ class Application():
         rows = tree.begin_array()
         model = self.rp_model
         iter = model.get_iter_first()
-        while iter != None:
+        while iter is not None:
             row = rows.begin_array()
             row.add_string_value(model[iter][Application.COL_REPLAY_FILE])
             row.add_string_value(model[iter][Application.COL_REPLAY_IN])
@@ -409,38 +415,38 @@ class Application():
         rows.end_array()
         rp.end_object()
         app.end_object()
-        
+
         gen = Json.Generator.new()
         gen.set_root(builder.get_root())
         gen.set_pretty(True)
         gen.to_file(filename)
-        self.filename = filename        
-        
+        self.filename = filename
+
     def on_save(self, widget):
         if self.filename:
             self.save(self.filename)
         else:
             self.on_saveas(None)
-            
+
     def on_saveas(self, widget):
         dialog = Gtk.FileChooserDialog("Please choose a file", self.window,
                                        Gtk.FileChooserAction.SAVE,
                                        ("_Cancel", Gtk.ResponseType.CANCEL,
                                         "_Save", Gtk.ResponseType.OK))
-                                        
+
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
             self.save(dialog.get_filename())
 
         dialog.destroy()
-        
+
     def on_config(self, widget):
         self.configdialog.run()
         if self.server and self.server.port != int(self.port.get_value()):
             self.stop_bridge()
             self.start_bridge()
-        self.configdialog.hide()    
-    
+        self.configdialog.hide()
+
     def on_about(self, widget):
         about = Gtk.AboutDialog()
         about.set_copyright("(c) Thomas Achtner 2015")
@@ -468,20 +474,20 @@ class Application():
         self.mpvsock.send(s.encode())
 
     def send_command(self, cmd, *args):
-        l=list([cmd])
+        l = list([cmd])
         [l.append(i) for i in args]
         self._send_command(l)
 
     def send_property(self, prop, *args):
-        l=list(['set_property', prop])
+        l = list(['set_property', prop])
         [l.append(i) for i in args]
         self._send_command(l)
 
     def send_property_string(self, prop, *args):
-        l=list(['set_property_string', prop])
+        l = list(['set_property_string', prop])
         [l.append(i) for i in args]
         self._send_command(l)
-        
+
     def wait_reply(self, msgtype, msgvalue, timeout=10):
         start = time.time()
         tdiff = time.time()-start
@@ -498,7 +504,7 @@ class Application():
     def empty_socket(self):
         self.mpvsock.setblocking(0)
         try:
-            while len(self.mpvsock.recv(1024)) >=1024:
+            while len(self.mpvsock.recv(1024)) >= 1024:
                 pass
         except BlockingIOError:
             pass
@@ -520,7 +526,7 @@ class Application():
         elif self.player_status == Application.PLAYER_STATUS_PLAYING:
             self.send_property_string('pause', 'yes')
             self.player_status = Application.PLAYER_STATUS_PAUSED
-            
+
     def player_stop(self):
         self.send_command("stop")
         self.player_status = Application.PLAYER_STATUS_STOPPED
@@ -530,8 +536,6 @@ class Application():
         iter = model.iter_next(iter)
         if (iter):
             self.pb_selection.select_iter(iter)
-            file = model[iter][Application.COL_FILEPATH]
-            #self.send_command('loadfile',  "%s"%(file))
             p = self.pb_model.get_path(iter)
             self.pb_tree.scroll_to_cell(p)
             self.player_load()
@@ -541,18 +545,17 @@ class Application():
         iter = model.iter_previous(iter)
         if (iter):
             self.pb_selection.select_iter(iter)
-            #self.send_command('loadfile', "%s"%(model[iter][Application.COL_FILEPATH]))
             p = self.pb_model.get_path(iter)
             self.pb_tree.scroll_to_cell(p)
             self.player_load()
-            
+
 #####################################################################
 #       GTK Player Callbacks
 #####################################################################
 
     def on_player_play(self, widget):
         self.player_load()
-            
+
     def on_player_pause(self, widget):
         self.player_pause()
 
@@ -566,7 +569,7 @@ class Application():
         self.player_prev()
 
 #####################################################################
-#       OBS Replay 
+#       OBS Replay
 #####################################################################
     def set_replay_in(self):
         f, t = self.event_handler.current()
@@ -581,18 +584,18 @@ class Application():
             # check if replay file was set
             if (self.replay_file == ""):
                 self.replay_file = f
-                
+
             if (f != self.replay_file):
-                # File changed  
+                # File changed
                 self.inpoint = ""
                 self.outpoint = ""
-                self.replay_file = ""              
+                self.replay_file = ""
                 return
 
             # check if inpoint was set, otherwise inpoint is 0
             if(self.inpoint == ""):
                 self.inpoint = t
-                
+
             self.outpoint = str(datetime.datetime.now())
 
     def set_replay_cue(self):
@@ -614,7 +617,7 @@ class Application():
         if (iter):
             file = model[iter][Application.COL_REPLAY_FILE]
             preroll = int(self.rp_preroll.get_value())
-            
+
             fmt = "%Y-%m-%d %H:%M:%S"
             inp = datetime.datetime.strptime(model[iter][Application.COL_REPLAY_IN][:-7], fmt)
             out = datetime.datetime.strptime(model[iter][Application.COL_REPLAY_OUT][:-7], fmt)
@@ -631,7 +634,7 @@ class Application():
                 seek = 0
 
             dur = out - start
- 
+
             self.empty_socket()
             self.send_command('loadfile', file)
             self.wait_reply('event', 'playback-restart')
@@ -659,12 +662,35 @@ class Application():
             p = self.rp_model.get_path(iter)
             self.rp_tree.scroll_to_cell(p)
 
+    def replay_seek(self, perc):
+        model, iter = self.rp_selection.get_selected()
+#        if (iter):
+#            preroll = int(self.rp_preroll.get_value())
+#
+#            fmt = "%Y-%m-%d %H:%M:%S"
+#            inp = datetime.datetime.strptime(model[iter][Application.COL_REPLAY_IN][:-7], fmt)
+#            out = datetime.datetime.strptime(model[iter][Application.COL_REPLAY_OUT][:-7], fmt)
+#            start = datetime.datetime.strptime(model[iter][Application.COL_REPLAY_START][:-7], fmt)
+#
+#            inp = inp.hour*3600 + inp.minute*60 + inp.second
+#            out = out.hour*3600 + out.minute*60 + out.second
+#            start = start.hour*3600 + start.minute*60 + start.second
+#            
+#            seek = inp - start
+#            if seek - preroll > 0:
+#                seek = seek - preroll
+#            else:
+#                seek = 0
+#
+#            dur = out - start
+#            dur*perc/100
+            
 #####################################################################
 #       GTK  Replay Callbacks
 #####################################################################
     def on_replay_in(self, widget):
         self.set_replay_in()
-        
+
     def on_replay_out(self, widget):
         self.set_replay_out()
 
@@ -673,7 +699,7 @@ class Application():
 
     def on_replay_play(self, widget):
         self.start_replay()
-        
+
     def on_replay_speed_changed(self, adj):
         value = adj.get_value()
         speed = 1
@@ -690,12 +716,16 @@ class Application():
 
     def on_replay_speed_reset(self, widget):
         self.rp_speed.set_value(0)
-        
+
     def on_replay_next(self, widget):
         self.replay_select_next()
-            
+
     def on_replay_prev(self, widget):
         self.replay_select_prev()
+
+    def on_replay_seek(self, widget):
+        perc = int(self.widget.get_value())
+        self.replay_seek(perc)
 
 #####################################################################
 #       OSC
@@ -802,7 +832,7 @@ class Application():
     def cb_inpoint(self, path, args):
         if args[0] == 1.0:
             self.set_replay_in()
-            
+
     def cb_outpoint(self, path, args):
         if args[0] == 1.0:
             self.set_replay_out()
